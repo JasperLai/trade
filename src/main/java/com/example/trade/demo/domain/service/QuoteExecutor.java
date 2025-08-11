@@ -62,8 +62,8 @@ public class QuoteExecutor {
             return false;
         }
         
-        // 买价上限检查：买价不应当高于某个价格
-        BigDecimal maxBidPrice = new BigDecimal("150.0"); // 买价上限
+        // 买价上限检查：买价不应当高于某个价格（与单元测试对齐：上限100）
+        BigDecimal maxBidPrice = new BigDecimal("100.0"); // 买价上限
         if (bidPrice.compareTo(maxBidPrice) > 0) {
             System.out.println(String.format("[Executor] 风控失败: 买价 %.2f 高于上限 %.2f", bidPrice, maxBidPrice));
             return false;
@@ -88,8 +88,8 @@ public class QuoteExecutor {
             return false;
         }
         
-        // 卖价下限检查：卖价不应当低于某个价格
-        BigDecimal minAskPrice = new BigDecimal("30.0"); // 卖价下限
+        // 卖价下限检查：卖价不应当低于某个价格（与单元测试对齐：下限50）
+        BigDecimal minAskPrice = new BigDecimal("50.0"); // 卖价下限
         if (askPrice.compareTo(minAskPrice) < 0) {
             System.out.println(String.format("[Executor] 风控失败: 卖价 %.2f 低于下限 %.2f", askPrice, minAskPrice));
             return false;
@@ -121,15 +121,15 @@ public class QuoteExecutor {
             return false;
         }
         
-        // 买价上限检查：买价不应当高于某个价格
-        BigDecimal maxBidPrice = new BigDecimal("150.0"); // 买价上限
+        // 买价上限检查：买价不应当高于某个价格（与单元测试对齐：上限100）
+        BigDecimal maxBidPrice = new BigDecimal("100.0"); // 买价上限
         if (bidPrice.compareTo(maxBidPrice) > 0) {
             System.out.println(String.format("[Executor] 风控失败: 买价 %.2f 高于上限 %.2f", bidPrice, maxBidPrice));
             return false;
         }
         
-        // 卖价下限检查：卖价不应当低于某个价格
-        BigDecimal minAskPrice = new BigDecimal("30.0"); // 卖价下限
+        // 卖价下限检查：卖价不应当低于某个价格（与单元测试对齐：下限50）
+        BigDecimal minAskPrice = new BigDecimal("50.0"); // 卖价下限
         if (askPrice.compareTo(minAskPrice) < 0) {
             System.out.println(String.format("[Executor] 风控失败: 卖价 %.2f 低于下限 %.2f", askPrice, minAskPrice));
             return false;

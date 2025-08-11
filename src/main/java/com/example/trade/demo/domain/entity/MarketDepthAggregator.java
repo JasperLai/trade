@@ -1,6 +1,7 @@
 package com.example.trade.demo.domain.entity;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,15 @@ public class MarketDepthAggregator {
         return bidDepth.values().stream()
                 .flatMap(depth -> depth.keySet().stream())
                 .max(BigDecimal::compareTo);
+    }
+
+    // 暴露全部深度（只读），供复杂策略（如 VMAP/VWAP）计算聚合盘口
+    public Map<String, NavigableMap<BigDecimal, BigDecimal>> getAllAskDepth() {
+        return Collections.unmodifiableMap(askDepth);
+    }
+
+    public Map<String, NavigableMap<BigDecimal, BigDecimal>> getAllBidDepth() {
+        return Collections.unmodifiableMap(bidDepth);
     }
 
     // 可选：获取快照等

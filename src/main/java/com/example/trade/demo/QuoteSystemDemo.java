@@ -13,6 +13,7 @@ import com.example.trade.demo.domain.entity.MarketDataEvent;
 import com.example.trade.demo.domain.entity.OrderBookLevel;
 import com.example.trade.demo.domain.service.QuoteService;
 import com.example.trade.demo.domain.service.SimpleBestPriceStrategy;
+import com.example.trade.demo.domain.service.VMAPBestPriceStrategy;
 
 @SpringBootApplication
 public class QuoteSystemDemo {
@@ -22,12 +23,26 @@ public class QuoteSystemDemo {
     }
 
     @Bean
-    public SimpleBestPriceStrategy simpleBestPriceStrategy() {
-        return new SimpleBestPriceStrategy();
+    public SimpleBestPriceStrategy simpleBestPriceStrategy() { return new SimpleBestPriceStrategy(); }
+
+    @Bean
+    public VMAPBestPriceStrategy vmapBestPriceStrategy() {
+        return new VMAPBestPriceStrategy(
+            new VMAPBestPriceStrategy.Params(
+                new BigDecimal("50"), // targetQty
+                5,                      // maxLevels
+                new BigDecimal("30"),  // minDepth
+                new BigDecimal("0.01"),// tickSize
+                1,                      // bidSteps
+                1,                      // askSteps
+                new BigDecimal("5"),   // quoteSize
+                "VMAP_BEST"
+            )
+        );
     }
 
     @Bean
-    public QuoteService quoteService(@Autowired SimpleBestPriceStrategy strategy) {
+    public QuoteService quoteService(@Autowired VMAPBestPriceStrategy strategy) {
         return new QuoteService(strategy);
     }
 
