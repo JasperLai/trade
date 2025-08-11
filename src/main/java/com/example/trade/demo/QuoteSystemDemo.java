@@ -28,17 +28,15 @@ public class QuoteSystemDemo {
     @Bean
     public VMAPBestPriceStrategy vmapBestPriceStrategy() {
         return new VMAPBestPriceStrategy(
-            new VMAPBestPriceStrategy.Params(
-                new BigDecimal("50"), // targetQty
-                5,                      // maxLevels
-                new BigDecimal("30"),  // minDepth
-                new BigDecimal("0.01"),// tickSize
-                1,                      // bidSteps
-                1,                      // askSteps
-                new BigDecimal("5"),   // quoteSize
-                "VMAP_BEST"
-            )
-        );
+                new VMAPBestPriceStrategy.Params(
+                        new BigDecimal("50"), // targetQty：希望覆盖 50 手的深度
+                        5, // maxLevels：最多看 5 档
+                        new BigDecimal("30"), // minDepth：少于 30 手不报
+                        new BigDecimal("0.01"), // tickSize
+                        +1, // bidSteps：在 VWAP 基础上加 1 tick
+                        +1, // askSteps：在 VWAP 基础上加 1 tick（更保守）
+                        new BigDecimal("5"), // quoteSize：每边挂 5 手
+                        "VWAP_BEST"));
     }
 
     @Bean
