@@ -95,9 +95,9 @@ public class VMAPBestPriceStrategy implements QuoteStrategy {
         return merged;
     }
 
-    private java.util.Optional<BigDecimal> vwapFromBook(NavigableMap<BigDecimal, BigDecimal> ordered,
+    private Optional<BigDecimal> vwapFromBook(NavigableMap<BigDecimal, BigDecimal> ordered,
                                               BigDecimal targetQty, int maxLevels) {
-        if (ordered.isEmpty()) return java.util.Optional.empty();
+        if (ordered.isEmpty()) return Optional.empty();
         BigDecimal accQty = BigDecimal.ZERO;
         BigDecimal accNotional = BigDecimal.ZERO;
         int levels = 0;
@@ -113,8 +113,8 @@ public class VMAPBestPriceStrategy implements QuoteStrategy {
             accNotional = accNotional.add(px.multiply(take));
             if (accQty.compareTo(targetQty) >= 0) break;
         }
-        if (accQty.signum() == 0) return java.util.Optional.empty();
-        return java.util.Optional.of(accNotional.divide(accQty, 10, RoundingMode.HALF_UP));
+        if (accQty.signum() == 0) return Optional.empty();
+        return Optional.of(accNotional.divide(accQty, 10, RoundingMode.HALF_UP));
     }
 
     private BigDecimal cumulativeQty(NavigableMap<BigDecimal, BigDecimal> ordered, int maxLv) {
