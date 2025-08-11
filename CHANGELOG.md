@@ -2,6 +2,47 @@
 
 本文档记录了行情数据接收与报价系统的主要变更和版本历史。
 
+## [1.1.0] - 2025-08-11
+
+### 新增/变更
+
+- **新增 VMAP（VWAP 口径）策略**：`VMAPBestPriceStrategy`
+  - 基于全市场聚合盘口计算目标量 VWAP，并在 VWAP 基础上按步长和 tick 生成买/卖价。
+  - 支持参数：`targetQty`、`maxLevels`、`minDepth`、`tickSize`、`bidSteps`、`askSteps`、`quoteSize`、`strategyName`。
+- **聚合器增强**：`MarketDepthAggregator` 新增只读访问方法
+  - `getAllBidDepth()`、`getAllAskDepth()`，供策略进行跨 provider 合并计算。
+- **装配调整**：`QuoteSystemDemo` 默认启用 `VMAPBestPriceStrategy`，保留 `SimpleBestPriceStrategy` Bean。
+- **风控阈值校准**：`QuoteExecutor` 风控参数与单测一致
+  - 买价上限 `maxBidPrice=100.0`，卖价下限 `minAskPrice=50.0`。
+- **测试**：新增 `VMAPBestPriceStrategyTest`；将 `DemoApplicationTests` 指定为 `@SpringBootTest(classes = DemoApplication.class)` 以避免多启动类冲突。
+- **构建环境**：Spring Boot 3 要求 **Java 17**；已在 `pom.xml` 设置 `<java.version>17</java.version>`。
+
+### QA（基于本次测试过程的问答）
+
+- **Q：演示 4 中的买价 44.41 是如何计算出来的？**
+  - **A**：由聚合买盘 VWAP 计算得出。对 `ETHUSDT` 合并 `ProviderC` 与 `ProviderD` 的买盘，按从高到低最多 `maxLevels=5` 档累计：`Qty=40`、`Notional=1776`，则 `VWAP_bid=1776/40=44.40`。因 `bidSteps=+1` 且 `tickSize=0.01`，调整后为 `44.40 + 0.01 = 44.41`，买价按 tick 向下取整，得到 `44.41`。
+
+- **Q：`ProviderC` 在 demo 里是异常价示例，为什么还会与 `ProviderD` 聚合？**
+  - **A**：`MarketDepthAggregator` 按 `symbol` 持久化各 provider 最新深度，后续相同 `symbol` 的数据会与已有 provider 一并合并参与 VMAP 计算。若不希望异常来源参与，可：
+    - 在 demo 中为不同演示使用不同 `symbol`，或在演示前清空该 `symbol` 的聚合状态；
+    - 引入深度 TTL（超过时效自动剔除旧深度）；
+    - 对异常价做带外/质量过滤，或对 provider 加权。
+
+- **Q：演示 3 是否被风控拒绝？日志里没看到风控信息。**
+  - **A**：不是风控拒绝。演示 3 中 `minDepth=30`，而 `ETHUSDT/ProviderC` 的聚合深度不足，策略在“深度保护”处直接返回空指令（不下发给执行器），因此只有“策略未生成指令”的日志，没有风控日志。
+
+### 影响范围
+
+- 策略输出从简单最优价可切换为 VMAP（VWAP 口径）双边报价；
+- 需要 Java 17 进行构建与测试；
+- Demo 中跨演示共享同一 `symbol` 会导致 provider 深度被聚合，可能影响后续演示的 VWAP 结果。
+
+### 升级与使用提示
+
+- 若仅需启用 VMAP 策略，保持 `QuoteSystemDemo` 默认装配即可；
+- 若要隔离异常演示与正常演示的聚合影响，建议为演示 3 使用不同 `symbol`，或在进入演示 4 前重置 `ETHUSDT` 聚合器状态；
+- 策略参数可在 `QuoteSystemDemo#vmapBestPriceStrategy()` 中按需调整。
+
 ## [1.0.0] - 2025-08-07
 
 ### 新增功能
