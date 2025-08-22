@@ -1,4 +1,4 @@
-package com.example.trade.demo.domain.fx;
+package com.example.trade.demo.domain.fx.application;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -8,34 +8,28 @@ import java.util.Map;
 import java.util.NavigableMap;
 
 import com.example.trade.demo.domain.entity.MarketDepthAggregator;
-import com.example.trade.demo.domain.fx.FxTypes.FxSymbol;
-import com.example.trade.demo.domain.fx.FxTypes.FxSymbolRule;
-import com.example.trade.demo.domain.fx.OrderBookModels.OrderBook;
-import com.example.trade.demo.domain.fx.OrderBookModels.PriceLevel;
-import com.example.trade.demo.domain.fx.OrderBookModels.ProviderDepth;
-import com.example.trade.demo.domain.fx.FxFlatCoordinator.MarketDepthAggregatorFx;
+import com.example.trade.demo.domain.fx.valueobject.FxSymbol;
+import com.example.trade.demo.domain.fx.valueobject.FxSymbolRule;
+import com.example.trade.demo.domain.fx.valueobject.OrderBook;
+import com.example.trade.demo.domain.fx.valueobject.OrderBook.PriceLevel;
+import com.example.trade.demo.domain.fx.valueobject.OrderBook.ProviderDepth;
 
-/** 将现有 MarketDepthAggregator 适配为 FX 订单簿 */
-public final class Adapters {
+public final class MarketDepthAdapters {
 
-	public static final class MarketDepthAdapter implements MarketDepthAggregatorFx {
+	public static final class FromLegacyAggregator implements FlatOrderApplicationService.MarketDepthProvider {
 		private final MarketDepthAggregator agg;
-		private final FxSymbol symbol; 
 		private final FxSymbolRule rule;
 
-		public MarketDepthAdapter(MarketDepthAggregator agg, FxSymbol symbol, FxSymbolRule rule) {
-			this.agg = agg; this.symbol = symbol; this.rule = rule;
+		public FromLegacyAggregator(MarketDepthAggregator agg, FxSymbolRule rule) {
+			this.agg = agg; this.rule = rule;
 		}
 
-		@Override
-		public OrderBook latest(FxSymbol symbol) {
+		@Override public OrderBook latest(FxSymbol symbol) {
 			List<PriceLevel> asks = merge(agg.getAllAskDepth(), true);
 			List<PriceLevel> bids = merge(agg.getAllBidDepth(), false);
 			return new OrderBook(asks, bids);
 		}
-
-		@Override
-		public FxSymbolRule ruleOf(FxSymbol symbol) { return rule; }
+		@Override public FxSymbolRule ruleOf(FxSymbol symbol) { return rule; }
 
 		private List<PriceLevel> merge(Map<String, NavigableMap<BigDecimal, BigDecimal>> side, boolean isAsk) {
 			Map<BigDecimal, List<ProviderDepth>> tmp = new java.util.HashMap<>();
@@ -43,7 +37,7 @@ public final class Adapters {
 				String provider = e.getKey();
 				for (Map.Entry<BigDecimal, BigDecimal> lv : e.getValue().entrySet()) {
 					BigDecimal px = lv.getKey();
-					BigDecimal qty = lv.getValue(); // 假设数量单位为 Base
+					BigDecimal qty = lv.getValue();
 					tmp.computeIfAbsent(px, k -> new ArrayList<>()).add(new ProviderDepth(provider, qty));
 				}
 			}

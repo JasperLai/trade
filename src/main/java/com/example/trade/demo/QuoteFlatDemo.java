@@ -4,27 +4,22 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.NavigableMap;
-import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
 
 import com.example.trade.demo.domain.entity.MarketDepthAggregator;
 import com.example.trade.demo.domain.entity.OrderBookLevel;
-import com.example.trade.demo.domain.fx.Adapters.MarketDepthAdapter;
-import com.example.trade.demo.domain.fx.FxFlatCoordinator;
-import com.example.trade.demo.domain.fx.FxTypes.ExecutionIntent;
-import com.example.trade.demo.domain.fx.FxTypes.FxSymbol;
-import com.example.trade.demo.domain.fx.FxTypes.FxSymbolRule;
-import com.example.trade.demo.domain.fx.FxTypes.Side;
-import com.example.trade.demo.domain.fx.FxTypes.TargetType;
-import com.example.trade.demo.domain.fx.FlatModels.FlatOrder;
-import com.example.trade.demo.domain.fx.FlatModels.FlatSignal;
-import com.example.trade.demo.domain.fx.FlatModels.VwapParams;
-import com.example.trade.demo.domain.fx.OmsAndRepo.InMemoryFlatRepo;
-import com.example.trade.demo.domain.fx.OmsAndRepo.InMemoryOms;
-import com.example.trade.demo.domain.fx.OmsAndRepo.LogRiskGateway;
-import com.example.trade.demo.domain.fx.OmsAndRepo.RiskGateway;
-import com.example.trade.demo.domain.fx.VwapStrategy.FxVwapStrategy;
+import com.example.trade.demo.domain.fx.aggregate.FlatOrderAggregate;
+import com.example.trade.demo.domain.fx.aggregate.FlatOrderId;
+import com.example.trade.demo.domain.fx.application.FlatOrderApplicationService;
+import com.example.trade.demo.domain.fx.application.MarketDepthAdapters.FromLegacyAggregator;
+import com.example.trade.demo.domain.fx.repository.FlatOrderRepository;
+import com.example.trade.demo.domain.fx.repository.InMemoryFlatOrderRepository;
+import com.example.trade.demo.domain.fx.service.OrderExecutionDomainService.InMemoryOms;
+import com.example.trade.demo.domain.fx.service.VwapSplittingDomainService;
+import com.example.trade.demo.domain.fx.valueobject.FlatSignal;
+import com.example.trade.demo.domain.fx.valueobject.FxSymbol;
+import com.example.trade.demo.domain.fx.valueobject.FxSymbolRule;
+import com.example.trade.demo.domain.fx.valueobject.VwapParams;
 
 public class QuoteFlatDemo {
 
@@ -42,25 +37,24 @@ public class QuoteFlatDemo {
 
 		FxSymbol symbol = new FxSymbol("EUR", "USD");
 		FxSymbolRule rule = new FxSymbolRule(new BigDecimal("0.00005"), 5, 2, 2);
-		MarketDepthAdapter md = new MarketDepthAdapter(agg, symbol, rule);
+		FromLegacyAggregator md = new FromLegacyAggregator(agg, rule);
 
 		// 2) 准备执行环境
 		InMemoryOms oms = new InMemoryOms();
-		InMemoryFlatRepo repo = new InMemoryFlatRepo();
-		RiskGateway risk = new LogRiskGateway();
-		ScheduledExecutorService timer = FxFlatCoordinator.newTimer();
-		FxFlatCoordinator coord = new FxFlatCoordinator(md, new FxVwapStrategy(), oms, repo, risk, timer);
+		FlatOrderRepository repo = new InMemoryFlatOrderRepository();
+		ScheduledExecutorService timer = FlatOrderApplicationService.newTimer();
+		FlatOrderApplicationService app = new FlatOrderApplicationService(md, new VwapSplittingDomainService(), oms, repo, timer);
 
 		// 3) 触发一个 BUY Base 按 Base 数量目标的平盘
-		FlatSignal sig = new FlatSignal(symbol, Side.BUY, new BigDecimal("3.5"), "rebalance", Instant.now());
-		VwapParams p = new VwapParams(symbol, TargetType.BASE_QTY, new BigDecimal("3.5"),
-				ExecutionIntent.AUTO, Duration.ofSeconds(2), new BigDecimal("0.00010"));
-		String flatId = coord.start(sig, p);
-		System.out.println("Started flatId=" + flatId);
+		FlatSignal sig = new FlatSignal(symbol, FlatSignal.Side.BUY, new BigDecimal("3.5"), "rebalance", Instant.now());
+		VwapParams p = new VwapParams(symbol, VwapParams.TargetType.BASE_QTY, new BigDecimal("3.5"),
+				VwapParams.ExecutionIntent.AUTO, Duration.ofSeconds(2), new BigDecimal("0.00010"));
+		FlatOrderId id = app.start(sig, p);
+		System.out.println("Started flatId=" + id.value());
 
 		Thread.sleep(1000);
 		// 4) 输出父单聚合结果
-		FlatOrder fo = repo.load(flatId);
+		FlatOrderAggregate fo = repo.load(id);
 		System.out.println("Parent status=" + fo.status + ", cumBase=" + fo.cumBase + ", cumQuote=" + fo.cumQuote);
 	}
 }
