@@ -59,6 +59,7 @@ public class VMAPBestPriceStrategyTest {
         );
 
         VMAPBestPriceStrategy strat = new VMAPBestPriceStrategy(params);
+        strat.decideQuote(agg, null)
         QuoteInstruction qi = strat.decideQuote(agg);
 
         assertNotNull(qi, "应生成买卖价指令");
