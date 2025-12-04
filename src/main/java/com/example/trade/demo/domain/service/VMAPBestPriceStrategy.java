@@ -7,8 +7,9 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
 
-import com.example.trade.demo.domain.entity.MarketDepthAggregator;
 import com.example.trade.demo.domain.entity.QuoteInstruction;
+import com.example.trade.demo.domain.valueobject.MarketDepthSnapshot;
+import com.example.trade.demo.domain.valueobject.QuoteRequest;
 
 /**
  * VMAP 报价策略（此处实现为 VWAP 口径，按聚合盘口计算目标量的加权均价），
@@ -47,10 +48,10 @@ public class VMAPBestPriceStrategy implements QuoteStrategy {
     }
 
     @Override
-    public QuoteInstruction decideQuote(MarketDepthAggregator aggregator) {
-        // 1) 合并各 provider 深度到单本盘口
-        NavigableMap<BigDecimal, BigDecimal> mergedBid = mergeSide(aggregator.getAllBidDepth());
-        NavigableMap<BigDecimal, BigDecimal> mergedAsk = mergeSide(aggregator.getAllAskDepth());
+    public QuoteInstruction decideQuote(MarketDepthSnapshot snapshot, QuoteRequest request) {
+        // 1) 获取合并后的深度数据
+        NavigableMap<BigDecimal, BigDecimal> mergedBid = snapshot.getMergedBidDepth();
+        NavigableMap<BigDecimal, BigDecimal> mergedAsk = snapshot.getMergedAskDepth();
 
         if (mergedBid.isEmpty() || mergedAsk.isEmpty()) {
             return null;
@@ -80,9 +81,23 @@ public class VMAPBestPriceStrategy implements QuoteStrategy {
             askPx = bidPx.add(p.tickSize);
         }
 
+        BigDecimal size = request.getRequestQuantity().orElse(p.quoteSize);
+
         return QuoteInstruction.createBidAskQuote(
-                aggregator.getSymbol(), bidPx, askPx, p.quoteSize, p.strategyName
+                snapshot.getSymbol(), bidPx, askPx, size, p.strategyName
         );
+    }
+    
+    @Override
+    public boolean canHandle(QuoteRequest request) {
+        // VWAP策略主要处理ESP模式的连续报价
+        return request.isValid() && (request.getMode() == QuoteRequest.Mode.ESP || 
+               (request.getMode() == QuoteRequest.Mode.RFQ && request.getRequestQuantity().isPresent()));
+    }
+    
+    @Override
+    public String getStrategyName() {
+        return p.strategyName;
     }
 
     private NavigableMap<BigDecimal, BigDecimal> mergeSide(Map<String, NavigableMap<BigDecimal, BigDecimal>> sideDepth) {
@@ -132,5 +147,3 @@ public class VMAPBestPriceStrategy implements QuoteStrategy {
         return n.multiply(tick);
     }
 }
-
-

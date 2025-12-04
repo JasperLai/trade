@@ -10,6 +10,8 @@ import com.example.trade.demo.domain.entity.ExecutionResult;
 import com.example.trade.demo.domain.entity.MarketDataEvent;
 import com.example.trade.demo.domain.entity.MarketDepthAggregator;
 import com.example.trade.demo.domain.entity.QuoteInstruction;
+import com.example.trade.demo.domain.valueobject.MarketDepthSnapshot;
+import com.example.trade.demo.domain.valueobject.QuoteRequest;
 
 @Service
 public class QuoteService {
@@ -39,8 +41,11 @@ public class QuoteService {
         // 2. 更新聚合器深度数据
         aggregator.updateDepth(event.getProvider(), event.getAskLevels(), event.getBidLevels());
 
-        // 3. 调用策略生成指令
-        QuoteInstruction instruction = strategy.decideQuote(aggregator);
+        // 3. 生成快照并调用策略生成指令
+        MarketDepthSnapshot snapshot = aggregator.getSnapshot();
+        // 为了兼容现有逻辑，创建一个简单的ESP请求
+        QuoteRequest request = QuoteRequest.createEsp(symbol);
+        QuoteInstruction instruction = strategy.decideQuote(snapshot, request);
 
         // 4. 如果有指令，则执行
         if (instruction != null) {
